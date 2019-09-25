@@ -1,8 +1,12 @@
 package tcp;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.MessageDigest;
@@ -14,16 +18,48 @@ public class TCPServer
 	public static void main(String[] args) throws Exception 
 	{
 		ServerSocket s = new ServerSocket(PUERTO);
-		Socket sr = s.accept(); 
+		
+		System.out.println("ESPERANDO");
+		
+		Socket socket = s.accept();
+		
+		System.out.println("SOCKET: CONECTADO");
+		
+		InputStream input = socket.getInputStream();
+		BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+		 
+		System.out.println("INPUT: CONECTADO");
+		
+		OutputStream output = socket.getOutputStream();
+		PrintWriter writer = new PrintWriter(output, true);		
+		String line = "NULL";
+		
+		System.out.println("OUTPUT: CONECTADO");
+				
+		while (!line.equals("LISTO")) 
+        { 
+            line = reader.readLine(); 
+            System.out.println("RESP: "+line);
+        } 
+		
+		writer.println("READY");
+		writer.println(System.currentTimeMillis());
 		FileInputStream fr = new FileInputStream("./src/dataSend/prueba.bin");
 		byte b[] = new byte[2002];
 		fr.read(b, 0, b.length);
-		OutputStream os = sr.getOutputStream();
+		OutputStream os = socket.getOutputStream();
 		os.write(b, 0, b.length);
 		
 		String checkSum = getFileChecksum(MessageDigest.getInstance("SHA"), fr);
+		writer.println(checkSum);
 		
-		System.out.println("HASH: "+ checkSum);
+		while (!line.equals("CLOSE")) 
+        { 
+            line = reader.readLine(); 
+            System.out.println("RESP: "+line);
+        } 
+		
+		socket.close();
 	}
 	
 	public static String getFileChecksum(MessageDigest digest, FileInputStream fis) throws IOException
