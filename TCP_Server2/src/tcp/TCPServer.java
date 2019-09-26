@@ -1,6 +1,7 @@
 package tcp;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,6 +11,7 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.MessageDigest;
+import java.util.Random;
 
 public class TCPServer 
 {
@@ -44,11 +46,25 @@ public class TCPServer
 		
 		writer.println("READY");
 		writer.println(System.currentTimeMillis());
-		FileInputStream fr = new FileInputStream("./src/dataSend/prueba.bin");
+		writer.println("TIEMPO");
+		String archivo = "Data.txt";
+		writer.println(archivo);
+		writer.println("NOMBRE");
+		
+		FileInputStream fr = new FileInputStream("./src/dataSend/"+archivo);
+		File tamano = new File("./src/dataSend/"+archivo);
+		
+		writer.println(tamano.length());
+		writer.println("SIZE");
+		long id = new Random().nextLong(); 
+		writer.println("CLIENTE: "+id);
+		
 		byte b[] = new byte[2002];
 		fr.read(b, 0, b.length);
 		OutputStream os = socket.getOutputStream();
 		os.write(b, 0, b.length);
+		
+		writer.println("TERMINATED");
 		
 		String checkSum = getFileChecksum(MessageDigest.getInstance("SHA"), fr);
 		writer.println(checkSum);

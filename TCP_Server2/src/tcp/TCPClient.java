@@ -1,6 +1,7 @@
 package tcp;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -51,8 +52,49 @@ public class TCPClient
 		
 		long time = Long.parseLong(line);
 		
+		while (!line.equals("TIEMPO")) 
+        { 
+            line = reader.readLine(); 
+            System.out.println("SERVER: "+line);
+        }
+		while (line.equals("TIEMPO")) 
+        { 
+            line = reader.readLine(); 
+            System.out.println("SERVER: "+line);
+        }
+		
+	    String archivo = line; 
+	    String archivoLog = "ARCHIVO: "+line; 
+	    
+	    while (!line.equals("NOMBRE")) 
+        { 
+            line = reader.readLine(); 
+            System.out.println("SERVER: "+line);
+        }
+		while (line.equals("NOMBRE")) 
+        { 
+            line = reader.readLine(); 
+            System.out.println("SERVER: "+line);
+        }
+		
+		String tamano = line;
+		String tamanoMB = "TAMANO: "+String.valueOf(Long.parseLong(line)/1000000)+" MB";
+		
+		while (!line.equals("SIZE")) 
+	    { 
+			line = reader.readLine(); 
+	        System.out.println("SERVER: "+line);
+	    }
+		while (line.equals("SIZE"))
+		{ 
+			line = reader.readLine(); 
+	        System.out.println("SERVER: "+line);
+	    }
+		
+		String cliente = line;
+		
 		InputStream is = socket.getInputStream();
-		FileOutputStream fr = new FileOutputStream("./src/dataReceived/archivoRecibido.bin");
+		FileOutputStream fr = new FileOutputStream("./src/dataReceived/"+archivo);
 		is.read(b, 0, b.length);
 		fr.write(b, 0 , b.length);
 		
@@ -61,8 +103,8 @@ public class TCPClient
 		String tiempo = "RECIBIDO EN:"+(temp-time)/1000+" SEGUNDOS";
 		
 		System.out.println("YOKAS: "+tiempo);
-		
-		FileInputStream outputFile = new FileInputStream("./src/dataReceived/archivoRecibido.bin");
+		FileInputStream outputFile = new FileInputStream("./src/dataReceived/"+archivo);
+		File archRec = new File("./src/dataReceived/"+archivo);
 		String checkSum = getFileChecksum(MessageDigest.getInstance("SHA"), outputFile);
 		
 		while (line.equals("READY")) 
@@ -89,10 +131,30 @@ public class TCPClient
 		writer.println("CLOSE");
 		System.out.println("YOKAS: CLOSE");
 		
-		String date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-
-		FileOutputStream log = new FileOutputStream("./src/logs/"+date+".txt");
-		log.write(b);;
+		String date = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		String dateLog = "DATE: "+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+		String enviado = "ENVIADO :"+tamano+" BYTES";
+		String recibido = "RECIBIDO :"+String.valueOf(archRec.length())+" BYTES";
+		
+		System.out.println(dateLog);
+		System.out.println(archivoLog);
+		System.out.println(tamanoMB);
+		System.out.println(cliente);
+		System.out.println(tiempo);
+		System.out.println(enviado);
+		System.out.println(recibido);
+		System.out.println(estado);
+		
+		PrintWriter log = new PrintWriter("./src/logs/"+date+".txt", "UTF-8");
+		log.println(dateLog);
+		log.println(archivoLog);
+		log.println(tamanoMB);
+		log.println(cliente);
+		log.println(tiempo);
+		log.println(enviado);
+		log.println(recibido);
+		log.println(estado);
+		log.close();
 		
 		socket.close();
 	}
