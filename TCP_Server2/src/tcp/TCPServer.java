@@ -47,11 +47,12 @@ public class TCPServer
 		writer.println("READY");
 		writer.println(System.currentTimeMillis());
 		writer.println("TIEMPO");
-		String archivo = "Data.txt";
+		String archivo = args[0];
 		writer.println(archivo);
 		writer.println("NOMBRE");
 		
 		FileInputStream fr = new FileInputStream("./src/dataSend/"+archivo);
+		FileInputStream inFile = new FileInputStream("./src/dataSend/"+archivo);
 		File tamano = new File("./src/dataSend/"+archivo);
 		
 		writer.println(tamano.length());
@@ -59,14 +60,14 @@ public class TCPServer
 		long id = new Random().nextLong(); 
 		writer.println("CLIENTE: "+id);
 		
-		byte b[] = new byte[2002];
+		byte b[] = new byte[(int) tamano.length()];
 		fr.read(b, 0, b.length);
 		OutputStream os = socket.getOutputStream();
 		os.write(b, 0, b.length);
 		
+		String checkSum = getFileChecksum(MessageDigest.getInstance("SHA"), inFile);
+
 		writer.println("TERMINATED");
-		
-		String checkSum = getFileChecksum(MessageDigest.getInstance("SHA"), fr);
 		writer.println(checkSum);
 		
 		while (!line.equals("CLOSE")) 
@@ -81,18 +82,22 @@ public class TCPServer
 	public static String getFileChecksum(MessageDigest digest, FileInputStream fis) throws IOException
 	{    
 	    byte[] byteArray = new byte[1024];
-	    int bytesCount = 0;	    
+	    int bytesCount = 0;	
+	    
 	    while ((bytesCount = fis.read(byteArray)) != -1) 
 	    {
 	        digest.update(byteArray, 0, bytesCount);
 	    }	     
-	    fis.close();	     
-	    byte[] bytes = digest.digest();	     
+	    fis.close();
+	    
+	    byte[] bytes = digest.digest();	    
+	    
 	    StringBuilder sb = new StringBuilder();
 	    for(int i=0; i< bytes.length ;i++)
 	    {
 	        sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
 	    }	     
+	    
 	    return sb.toString();
 	}
 }

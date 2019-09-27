@@ -16,7 +16,6 @@ import java.util.Date;
 
 public class TCPClient 
 {		
-	@SuppressWarnings("deprecation")
 	public static void main(String[] args) throws Exception 
 	{				
 		Socket socket = new Socket("localhost", TCPServer.PUERTO);
@@ -34,8 +33,6 @@ public class TCPClient
 		
 		System.out.println("YOKAS: OUTPUT: CONECTADO");
 				
-		byte []b = new byte[2002];
-		
 		writer.println("LISTO");
 		System.out.println("YOKAS:LISTO");
 		
@@ -78,7 +75,7 @@ public class TCPClient
         }
 		
 		String tamano = line;
-		String tamanoMB = "TAMANO: "+String.valueOf(Long.parseLong(line)/1000000)+" MB";
+		String tamanoMB = "TAMANO: "+String.valueOf(Long.parseLong(line)/1000)+" KB";
 		
 		while (!line.equals("SIZE")) 
 	    { 
@@ -95,8 +92,11 @@ public class TCPClient
 		
 		InputStream is = socket.getInputStream();
 		FileOutputStream fr = new FileOutputStream("./src/dataReceived/"+archivo);
+		byte []b = new byte[Integer.parseInt(tamano)];		
+		 
 		is.read(b, 0, b.length);
-		fr.write(b, 0 , b.length);
+		fr.write(b, 0 , b.length); 		
+		fr.close();
 		
 		long temp = System.currentTimeMillis();
 		System.out.println("YOKAS: "+temp);
@@ -106,17 +106,24 @@ public class TCPClient
 		FileInputStream outputFile = new FileInputStream("./src/dataReceived/"+archivo);
 		File archRec = new File("./src/dataReceived/"+archivo);
 		String checkSum = getFileChecksum(MessageDigest.getInstance("SHA"), outputFile);
-		
-		while (line.equals("READY")) 
-        { 
-            line = reader.readLine(); 
-            System.out.println("RESP: "+line);
-        } 
+
+		while (!line.equals("TERMINATED"))
+		{ 
+			line = reader.readLine(); 
+	        System.out.println("SERVER: "+line);
+	    }
+		while (line.equals("TERMINATED"))
+		{ 
+			line = reader.readLine(); 
+	        System.out.println("SERVER: "+line);
+	    }
 		
 		String estado = "ESTADO DE RECEPCION: ";
+		System.out.println("CHECKSUM HASH RECIBIDO: "+checkSum);
+		System.out.println("CHECKSUM HASH ENVIADO: "+line);
 		
 		if (checkSum.equals(line))
-		{
+		{			
 			estado = estado+"CORRECTO";
 			writer.println("CORRECTO");
 			System.out.println("YOKAS: CORRECTO");
@@ -133,8 +140,8 @@ public class TCPClient
 		
 		String date = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
 		String dateLog = "DATE: "+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-		String enviado = "ENVIADO :"+tamano+" BYTES";
-		String recibido = "RECIBIDO :"+String.valueOf(archRec.length())+" BYTES";
+		String enviado = "ENVIADO: "+tamano+" BYTES";
+		String recibido = "RECIBIDO: "+String.valueOf(archRec.length())+" BYTES";
 		
 		System.out.println(dateLog);
 		System.out.println(archivoLog);
@@ -162,18 +169,22 @@ public class TCPClient
 	public static String getFileChecksum(MessageDigest digest, FileInputStream fis) throws IOException
 	{    
 	    byte[] byteArray = new byte[1024];
-	    int bytesCount = 0;	    
+	    int bytesCount = 0;	 
+	    
 	    while ((bytesCount = fis.read(byteArray)) != -1) 
 	    {
 	        digest.update(byteArray, 0, bytesCount);
 	    }	     
-	    fis.close();	     
+	    fis.close();	
+	    
 	    byte[] bytes = digest.digest();	     
-	    StringBuilder sb = new StringBuilder();
+	    
+	    StringBuilder sb = new StringBuilder();	    
 	    for(int i=0; i< bytes.length ;i++)
 	    {
 	        sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
 	    }	     
+	    
 	    return sb.toString();
 	}
 }
