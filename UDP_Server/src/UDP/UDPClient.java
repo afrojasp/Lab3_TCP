@@ -21,7 +21,6 @@ public class UDPClient
 	    String myLine = "";
 	    String yourLine = "";
 	    DatagramPacket receivePacket;
-	    DatagramPacket receivePacketArchivo;
 	    DatagramPacket sendPacket;
 		System.out.println("CLIENTE: PRENDIDO");
 		
@@ -36,7 +35,7 @@ public class UDPClient
 	    clientSocket.send(sendPacket);
 	    System.out.println("CLIENTE: "+myLine); 
 	    
-	    while (!yourLine.equals("READY")) 
+	    while (!yourLine.trim().equals("READY")) 
         { 
 	    	receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
@@ -44,50 +43,56 @@ public class UDPClient
 		    
             System.out.println("SERVER: "+yourLine);
         }
-		while (yourLine.equals("READY")) 
+		while (yourLine.trim().equals("READY")) 
         { 
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
 		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.split("-")[1];
 		    
             System.out.println("SERVER: "+yourLine);
         }
 		
-		long time = Long.parseLong(yourLine);
+		long time = Long.parseLong(yourLine.trim());
 		
-		while (!yourLine.equals("TIEMPO")) 
+		while (!yourLine.trim().equals("TIEMPO")) 
+        {
+			receivePacket = new DatagramPacket(receiveData, receiveData.length);
+		    clientSocket.receive(receivePacket);	    
+		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.substring(0,6);
+		    
+            System.out.println("SERVER: "+yourLine);
+        }
+		while (yourLine.trim().equals("TIEMPO")) 
         { 
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
 		    yourLine = new String(receivePacket.getData());
-		    
-            System.out.println("SERVER: "+yourLine);
-        }
-		while (yourLine.equals("TIEMPO")) 
-        { 
-			receivePacket = new DatagramPacket(receiveData, receiveData.length);
-		    clientSocket.receive(receivePacket);	    
-		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.split(";")[1];
 		    
             System.out.println("SERVER: "+yourLine);
         }
 		
-		String archivo = yourLine; 
+		String archivo = yourLine.trim(); 
 		String archivoLog = "ARCHIVO: "+yourLine;
 		
-		while (!yourLine.equals("NOMBRE")) 
+		while (!yourLine.trim().equals("NOMBRE")) 
         { 
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
 		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.substring(0,6);
 		    
             System.out.println("SERVER: "+yourLine);
         }
-		while (yourLine.equals("NOMBRE")) 
+		while (yourLine.trim().equals("NOMBRE")) 
         { 
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
 		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.split("/")[1];
+		    yourLine = yourLine.replaceAll("[^0-9]", "");
 		    
             System.out.println("SERVER: "+yourLine);
         }
@@ -95,15 +100,16 @@ public class UDPClient
 		String tamano = yourLine;
 		String tamanoMB = "TAMANO: "+String.valueOf(Long.parseLong(yourLine)/1000)+" KB";
 		
-		while (!yourLine.equals("SIZE")) 
+		while (!yourLine.trim().equals("SIZE")) 
 	    { 
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
 		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.substring(0,4);
 		    
             System.out.println("SERVER: "+yourLine);
 	    }
-		while (yourLine.equals("SIZE"))
+		while (yourLine.trim().equals("SIZE"))
 		{ 
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
@@ -115,53 +121,65 @@ public class UDPClient
 		String cliente = yourLine;
 		
 		FileOutputStream fr = new FileOutputStream("./src/dataReceived/"+archivo);
-		byte[] receiveDataArchivo = new byte[UDPServer.BUFFER];
+		receiveData = new byte[UDPServer.BUFFER];
 		int paketes = 0;
 		
-		for (int i = 0; i<(Integer.parseInt(tamano)/UDPServer.BUFFER); i++)
+		for (int i = 0; i<(Long.parseLong(tamano.trim())/UDPServer.BUFFER) && !yourLine.equals("TERMINATED"); i++)
 		{
 			paketes++;
 			
-			receivePacketArchivo = new DatagramPacket(receiveDataArchivo, receiveDataArchivo.length);
-		    clientSocket.receive(receivePacketArchivo);
+			receivePacket = new DatagramPacket(receiveData, receiveData.length);
+		    clientSocket.receive(receivePacket);
+		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.substring(0,10);
 			
-			fr.write(receiveDataArchivo, 0, UDPServer.BUFFER);
+			fr.write(receiveData, 0, UDPServer.BUFFER);
 			System.out.println(i);
-		}
+		}		
 		
-		paketes++;
-		int extra = Integer.parseInt(tamano) % UDPServer.BUFFER;
-		System.out.println("EL EXTRA ES: "+extra);
-		
-		receivePacketArchivo = new DatagramPacket(receiveDataArchivo, receiveDataArchivo.length);
-	    clientSocket.receive(receivePacketArchivo);
-		
-		fr.write(receiveDataArchivo, 0, extra);	
+		if (!yourLine.equals("TERMINATED"))
+		{
+			paketes++;
+			int extra = Integer.parseInt(tamano) % UDPServer.BUFFER;
+			System.out.println("EL EXTRA ES: "+extra);
+			
+			receivePacket = new DatagramPacket(receiveData, receiveData.length);
+		    clientSocket.receive(receivePacket);
+			fr.write(receiveData, 0, extra);
+		}		
 		
 		fr.close();
 		
+		myLine = "FINIQ";	    
+	    sendData = myLine.getBytes();
+	    sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, UDPServer.PUERTO);
+	    clientSocket.send(sendPacket);
+	    System.out.println("CLIENTE: "+myLine);
+		
 		long temp = System.currentTimeMillis();
 		System.out.println("YOKAS: "+temp);
-		String tiempo = "RECIBIDO EN:"+(temp-time)/1000+" SEGUNDOS";
+		String tiempo = "RECIBIDO EN: "+(temp-time)/1000+" SEGUNDOS";
 		
 		System.out.println("YOKAS: "+tiempo);
 		FileInputStream outputFile = new FileInputStream("./src/dataReceived/"+archivo);
 		File archRec = new File("./src/dataReceived/"+archivo);
 		String checkSum = getFileChecksum(MessageDigest.getInstance("SHA"), outputFile);
 		
-		while (!yourLine.equals("TERMINATED"))
+		while (!yourLine.trim().equals("TERMINATED"))
 		{ 
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
 		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.substring(0,10);
 		    
             System.out.println("SERVER: "+yourLine);
 	    }
-		while (yourLine.equals("TERMINATED"))
+		while (yourLine.trim().equals("TERMINATED"))
 		{ 
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
 		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.substring(0,40);
 		    
             System.out.println("SERVER: "+yourLine);
 	    }
@@ -172,9 +190,9 @@ public class UDPClient
 		
 		if (checkSum.equals(yourLine))
 		{			
-			estado = estado+"CORRECTO";
+			estado = estado + "CORRECTO";
 			
-			myLine = "CORRECTO";	    
+			myLine = "NICE";	    
 		    sendData = myLine.getBytes();
 		    sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, UDPServer.PUERTO);
 		    clientSocket.send(sendPacket);
@@ -183,9 +201,9 @@ public class UDPClient
 		}
 		else
 		{
-			estado = estado+"INCORRECTO";
+			estado = estado + "INCORRECTO";
 			
-			myLine = "INCORRECTO";	    
+			myLine = "MAL";	    
 		    sendData = myLine.getBytes();
 		    sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, UDPServer.PUERTO);
 		    clientSocket.send(sendPacket);
@@ -193,19 +211,21 @@ public class UDPClient
 			System.out.println("YOKAS: INCORRECTO");
 		}
 		
-		while (!yourLine.equals("PAKETES"))
+		while (!yourLine.trim().equals("PAKETES"))
 		{ 
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
 		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.substring(0,7);
 		    
             System.out.println("SERVER: "+yourLine);
 	    }
-		while (yourLine.equals("PAKETES"))
+		while (yourLine.trim().equals("PAKETES"))
 		{ 
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
-		    yourLine = new String(receivePacket.getData());
+		    yourLine = new String(receivePacket.getData());	
+		    yourLine = yourLine.split("=")[1];
 		    
             System.out.println("SERVER: "+yourLine);
 	    }
