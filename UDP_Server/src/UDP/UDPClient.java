@@ -114,6 +114,7 @@ public class UDPClient
 			receivePacket = new DatagramPacket(receiveData, receiveData.length);
 		    clientSocket.receive(receivePacket);	    
 		    yourLine = new String(receivePacket.getData());
+		    yourLine = yourLine.split(">")[1];
 		    
             System.out.println("SERVER: "+yourLine);
 	    }
